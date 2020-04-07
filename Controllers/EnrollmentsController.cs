@@ -13,7 +13,7 @@ namespace Cw5.Controllers
     [Route("api/enrollments")]
     public class EnrollmentsController : ControllerBase
     {
-        IStudentsDbService dbService;
+        readonly IStudentsDbService dbService;
 
         public EnrollmentsController(IStudentsDbService dbService)
         {

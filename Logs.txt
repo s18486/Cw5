@@ -1,0 +1,11 @@
+Method: GET
+Path: /api/students
+Body: {
+	"IndexNumber": "3",
+	"FirstName": "Andrzej",
+	"LastName": "Malewski",
+	"BirthDate": "1993-03-30"
+}
+Query: Microsoft.AspNetCore.Http.QueryCollection
+
+
