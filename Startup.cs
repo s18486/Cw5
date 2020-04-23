@@ -6,6 +6,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Cw5.Middlewars;
+using Microsoft.AspNetCore.Authentication;
+using Cw5.Loggining;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace Cw5
 {
@@ -22,6 +27,22 @@ namespace Cw5
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddScoped<IStudentsDbService, SqlServerDbService>();
+            //services.AddAuthentication("AuthenticationBasic").AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("AuthenticationBasic", null);
+            services.AddScoped<IPasswordService, PasswordService>();
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateActor = true,
+                    ValidateLifetime = true,
+                    ValidIssuer = "admin",
+                    ValidAudience = "employee",
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SecretKey"]))
+                };
+            });
+
             services.AddControllers();
         }
 
@@ -40,7 +61,7 @@ namespace Cw5
 
             app.UseMiddleware<LogMiddleware>();
 
-            app.Use(async (context, next) =>
+            /*app.Use(async (context, next) =>
             {            
                 if (!context.Request.Headers.ContainsKey("Index")) {
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -48,15 +69,16 @@ namespace Cw5
                     return;
                 }
                
-                /*if (!dbService.Check(context.Request.Headers["Index"]))
+                / (!dbService.Check(context.Request.Headers["Index"]))
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     await context.Response.WriteAsync("Nie ma studenta");
                     return;
-                }*/
+                }
                 await next();
-            });
+            });*/
             app.UseRouting();
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

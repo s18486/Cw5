@@ -13,7 +13,12 @@ namespace Cw5.Services
     public class SqlServerDbService : IStudentsDbService
     {
         private const string ConString = "Data Source=win-3alsm9qls2n;Initial Catalog=master;Integrated Security=True";
-    
+        readonly IPasswordService passwordService;
+
+        public SqlServerDbService(IPasswordService password)
+        {
+            this.passwordService = password;
+        }
         public PromoteStudentResponse PromoteStudent(PromoteStudentRequest request)
         {
             using SqlConnection con = new SqlConnection(ConString);
@@ -54,7 +59,7 @@ namespace Cw5.Services
                     return null;
                 }
             }
-            catch (SqlException ex)
+            catch (SqlException)
             {
                 return null;
             }
@@ -108,12 +113,15 @@ namespace Cw5.Services
                     EnrollStudentResponse response = new EnrollStudentResponse();
                     if (dataPresent)
                     {
-                        com.CommandText = "Insert into Student Values(@IndexNumber,@FirstName,@LastName,@BirthDate,@IdEnrollment)";
+                        com.CommandText = "Insert into Student Values(@IndexNumber,@FirstName,@LastName,@BirthDate,@IdEnrollment,@StudentPassword,@Salt,NULL)";
                         com.Parameters.AddWithValue("@IndexNumber", request.IndexNumber);
                         com.Parameters.AddWithValue("@FirstName", request.FirstName);
                         com.Parameters.AddWithValue("@LastName", request.LastName);
                         com.Parameters.AddWithValue("@BirthDate", request.Birthdate);
                         com.Parameters.AddWithValue("@IdEnrollment", IdEnrollment);
+                        String salt = passwordService.CreateSalt();
+                        com.Parameters.AddWithValue("@StudentPassword", passwordService.HashPassword(request.Password, salt));
+                        com.Parameters.AddWithValue("@Salt", salt);
                         com.ExecuteNonQuery();
 
                         com.Parameters.Clear();
@@ -140,11 +148,14 @@ namespace Cw5.Services
                         com.Parameters.AddWithValue("@IdStudy", StudyId);
                         if (com.ExecuteNonQuery() == 1)
                         {
-                            com.CommandText = "Insert into Student Values(@IndexNumber,@FirstName,@LastName,@BirthDate,(Select Max(IdEnrollment) from Enrollment))";
+                            com.CommandText = "Insert into Student Values(@IndexNumber,@FirstName,@LastName,@BirthDate,(Select Max(IdEnrollment) from Enrollment),@StudentPassword,@Salt,NULL)";
                             com.Parameters.AddWithValue("@IndexNumber", request.IndexNumber);
                             com.Parameters.AddWithValue("@FirstName", request.FirstName);
                             com.Parameters.AddWithValue("@LastName", request.LastName);
                             com.Parameters.AddWithValue("@BirthDate", request.Birthdate);
+                            String salt = passwordService.CreateSalt();
+                            com.Parameters.AddWithValue("@StudentPassword", passwordService.HashPassword(request.Password, salt));
+                            com.Parameters.AddWithValue("@Salt", salt);
                             com.ExecuteNonQuery();
 
                             com.CommandText = "select IdEnrollment,Semester,StartDate,Name from Enrollment inner join Studies on Enrollment.IdStudy=Studies.IdStudy where IdEnrollment=(Select MAX(IdEnrollment) from Enrollment)";
@@ -168,14 +179,14 @@ namespace Cw5.Services
                         }
                     }
                 }
-                catch (Exception ex2)
+                catch (Exception)
                 {
                     transaction.Rollback();
                     transaction.Dispose();
                     return null;
                 }
             }
-            catch (SqlException ex)
+            catch (SqlException)
             {
                 return null;
             }
@@ -197,6 +208,105 @@ namespace Cw5.Services
                 reader.Close();
             }
             return true;
+        }
+
+        public bool Login(string Index, string Password)
+        {
+            using (SqlConnection con = new SqlConnection(ConString))
+            using (SqlCommand com = new SqlCommand())
+            {
+                com.Connection = con;
+                com.CommandText = "Select * from Student where IndexNumber=@index and Password = @pass";
+                com.Parameters.AddWithValue("@index", Index);
+                com.Parameters.AddWithValue("@pass",Password);
+                con.Open();
+                SqlDataReader reader = com.ExecuteReader();
+
+                if (reader.Read())
+                    return false;
+
+                reader.Close();
+            }
+            return true;
+        }
+
+        public void SetRefreshToken(string IndexNumber, string refresh)
+        {
+            try
+            {
+                using SqlConnection con = new SqlConnection(ConString);
+                using SqlCommand com = new SqlCommand
+                {
+                    Connection = con,
+                    CommandText = "Update Student Set RefreshToken=@Token where IndexNumber=@IndexNumber"
+                };
+                com.Parameters.AddWithValue("@Token", refresh);
+                com.Parameters.AddWithValue("@IndexNumber", IndexNumber);
+                con.Open();
+                com.ExecuteNonQuery();
+            }
+            catch (Exception)
+            { }
+        }
+
+        public string GetRefreshTokenOwner(string refreshToken)
+        {
+            try
+            {
+                using SqlConnection con = new SqlConnection(ConString);
+                using SqlCommand com = new SqlCommand
+                {
+                    Connection = con,
+                    CommandText = "Select IndexNumber from Student where RefreshToken=@Token"
+                };
+                com.Parameters.AddWithValue("@Token", refreshToken);
+                con.Open();
+                SqlDataReader reader = com.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    string res = reader["IndexNumber"].ToString();
+                    reader.Close();
+                    return res;
+                }
+                reader.Close();
+                return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public PasswordDetails GetStudentPasswordData(string IndexNumber)
+        {
+            PasswordDetails response = new PasswordDetails();
+            try
+            {
+                using SqlConnection con = new SqlConnection(ConString);
+                using SqlCommand com = new SqlCommand
+                {
+                    Connection = con,
+                    CommandText = "Select Password,Salt from Student where IndexNumber=@index"
+                };
+                com.Parameters.AddWithValue("@index", IndexNumber);
+                con.Open();
+                SqlDataReader reader = com.ExecuteReader();
+
+                if (reader.Read())
+                {
+                    response.Password = reader["StudentPassword"].ToString().Trim();
+                    response.Salt = reader["Salt"].ToString().Trim();
+                    reader.Close();
+                    return response;
+                }
+                reader.Close();
+                return null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
     }
 }

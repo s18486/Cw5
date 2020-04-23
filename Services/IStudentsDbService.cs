@@ -14,5 +14,10 @@ namespace Cw5.Services
         PromoteStudentResponse PromoteStudent(PromoteStudentRequest req);
 
         bool Check(string Index);
+
+        bool Login(string Index, string Password);
+        void SetRefreshToken(string index, string refresh);
+        string GetRefreshTokenOwner(string refreshToken);
+        PasswordDetails GetStudentPasswordData(string index);
     }
 }

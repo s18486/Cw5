@@ -26,5 +26,9 @@ namespace Cw5.DTOs.Requests
         [Required(ErrorMessage = "Studies field was not specified")]
         [MaxLength(100)]
         public string Studies { get; set; }
+
+        [Required(ErrorMessage = "Password field was not specified")]
+        [MaxLength(20)]
+        public string Password { get; set; }
     }
 }
