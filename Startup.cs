@@ -11,6 +11,7 @@ using Cw5.Loggining;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Cw5.Entity;
 
 namespace Cw5
 {
@@ -29,6 +30,9 @@ namespace Cw5
             services.AddScoped<IStudentsDbService, SqlServerDbService>();
             //services.AddAuthentication("AuthenticationBasic").AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("AuthenticationBasic", null);
             services.AddScoped<IPasswordService, PasswordService>();
+            services.AddScoped<IStudentEntityService, EntityStudentDbService>();
+
+            services.AddDbContext<masterContext>();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
             {

@@ -9,6 +9,6 @@ namespace Cw5.Models
     {
         public int Semester { get; set; }
         public String Study { get; set; }
-        public DateTime  StartDate { get; set; }
+        public DateTime StartDate { get; set; }
     }
 }

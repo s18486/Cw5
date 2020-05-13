@@ -24,9 +24,11 @@ namespace Cw5.Controllers
         readonly IConfiguration config;
         readonly IPasswordService passwordService;
 
-        public EnrollmentsController(IStudentsDbService dbService)
+        public EnrollmentsController(IStudentsDbService dbService, IConfiguration config, IPasswordService passwordService)
         {
             this.dbService = dbService;
+            this.config = config;
+            this.passwordService = passwordService;
         }
 
         
